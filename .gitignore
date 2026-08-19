@@ -1,0 +1,19 @@
+# Dependências / build
+node_modules
+dist
+dist-ssr
+tsconfig.tsbuildinfo
+.vite
+
+# Ambiente (segredos) — copie .env.example para .env.local
+.env
+.env.*
+!.env.example
+*.local
+
+# IDE / SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
