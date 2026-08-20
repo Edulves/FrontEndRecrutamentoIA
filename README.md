@@ -28,22 +28,21 @@ Abra http://localhost:5173
 | `npm run preview`  | Pré-visualiza o build de produção           |
 | `npm test`         | Roda os testes (Vitest run)                 |
 
-## 🔑 Variáveis de ambiente
+## 🔐 Autenticação no frontend
 
-Copie `.env.example` para `.env.local` e ajuste:
+O backend passou a exigir **autenticação por usuário/senha + JWT** (veja `backend/README.md`):
 
-```powershell
-Copy-Item .env.example .env.local
-```
+- A tela inicial é o **login** (`POST /api/auth/login`); também dá para **criar conta** na aba
+  "Criar conta" (`POST /api/auth/registrar`).
+- Após o login, o **JWT** e a expiração ficam no `localStorage` (`src/auth.ts`) e o token é
+  enviado automaticamente como cabeçalho `Authorization: Bearer <token>` nas chamadas protegidas
+  (ex.: `POST /api/analisar`).
+- Se o token expirar (60 min por padrão) ou a API responder `401`, o app volta para a tela de
+  login e limpa a sessão.
 
-```env
-VITE_API_KEY=SUA_CHAVE_DE_ACESSO_AO_BACKEND
-```
-
-Essa chave é enviada como cabeçalho `X-Api-Key` para o backend — corresponde às chaves de
-`api-credentials.json` do repositório do **backend**. `.env.local` **não é versionado**.
-
-> 🛡️ Nenhuma chave de IA (Claude) fica aqui: todas as chamadas à IA são feitas pelo backend.
+> A antiga `VITE_API_KEY` (cabeçalho `X-Api-Key`) deixou de ser usada — nenhuma variável de
+> ambiente é necessária para a autenticação. O `.env.example` foi atualizado e o `.env.local`
+> continua fora do versionamento (regras `.env.*` / `*.local` do `.gitignore`).
 
 ## 🔌 Proxy de desenvolvimento
 
@@ -62,9 +61,12 @@ Deixe o backend rodando (porta 5105) para a API funcionar em dev — sem problem
 
 ```
 src/
-├── App.tsx                 # tela principal (formulário + envio)
-├── App.test.tsx            # testes da tela
+├── App.tsx                 # tela principal (formulário + envio, gated por login)
+├── App.test.tsx            # testes da tela (autenticação + envio)
+├── auth.ts                 # login/registro + persistência do JWT (localStorage)
 ├── components/
+│   ├── LoadingModal.tsx    # pop-up de loading com tela de fundo desfocada
+│   ├── LoginScreen.tsx     # tela de login / criar conta
 │   └── RankingList.tsx     # exibição do ranking gerado
 ├── test/
 │   └── setup.ts            # setup do Vitest/Testing Library

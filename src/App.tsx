@@ -1,6 +1,9 @@
 import { useState, type FormEvent, type ChangeEvent, type DragEvent } from "react";
 import type { AnaliseResponse } from "./types";
 import RankingList from "./components/RankingList";
+import LoginScreen from "./components/LoginScreen";
+import LoadingModal from "./components/LoadingModal";
+import { getToken, getUsuarioLogado, limparSessao, salvarSessao, type LoginResponse } from "./auth";
 
 const EXEMPLO_VAGA = `Analista de Planejamento Sênior
 Requisitos obrigatórios:
@@ -26,6 +29,26 @@ export default function App() {
     const [erro, setErro] = useState<string | null>(null);
     const [resultado, setResultado] = useState<AnaliseResponse | null>(null);
     const [dragActive, setDragActive] = useState(false);
+
+    // Autenticação: a sessão JWT fica persistida no localStorage.
+    const [autenticado, setAutenticado] = useState(() => getToken() !== null);
+    const [usuarioLogado, setUsuarioLogado] = useState<string | null>(getUsuarioLogado);
+    const [avisoLogin, setAvisoLogin] = useState<string | null>(null);
+
+    function handleLoginSucesso(resposta: LoginResponse) {
+        salvarSessao(resposta);
+        setUsuarioLogado(resposta.usuario);
+        setAvisoLogin(null);
+        setAutenticado(true);
+    }
+
+    function handleLogout() {
+        limparSessao();
+        setAutenticado(false);
+        setUsuarioLogado(null);
+        setResultado(null);
+        setErro(null);
+    }
 
     function onFileChange(e: ChangeEvent<HTMLInputElement>) {
         if (e.target.files) adicionarArquivos(Array.from(e.target.files));
@@ -83,20 +106,30 @@ export default function App() {
             return;
         }
 
+        const token = getToken();
+        if (!token) {
+            setAutenticado(false);
+            setAvisoLogin("Sua sessão expirou. Entre novamente para continuar.");
+            return;
+        }
+
         const fd = new FormData();
         fd.append("descricaoVaga", descricaoVaga);
         arquivos.forEach((a) => fd.append("curriculos", a));
-
-        // A API exige o cabeçalho X-Api-Key (configurável via .env.local -> VITE_API_KEY).
-        const apiKey = import.meta.env.VITE_API_KEY as string | undefined;
 
         setCarregando(true);
         try {
             const resp = await fetch("/api/analisar", {
                 method: "POST",
-                headers: apiKey ? { "X-Api-Key": apiKey } : undefined,
+                headers: { Authorization: `Bearer ${token}` },
                 body: fd,
             });
+            if (resp.status === 401) {
+                limparSessao();
+                setAutenticado(false);
+                setAvisoLogin("Sua sessão expirou. Entre novamente para continuar.");
+                return;
+            }
             if (!resp.ok) {
                 const txt = await resp.text();
                 throw new Error(`HTTP ${resp.status}: ${txt}`);
@@ -110,11 +143,28 @@ export default function App() {
         }
     }
 
+    if (!autenticado) {
+        return (
+            <div className="app">
+                <LoginScreen onLogin={handleLoginSucesso} aviso={avisoLogin} />
+                <footer className="footer">
+                    <small>Backend: ASP.NET Core 8 · Frontend: Vite + React · IA: Google Gemini</small>
+                </footer>
+            </div>
+        );
+    }
+
     return (
         <div className="app">
             <header className="header">
                 <h1>🎯 Recrutamento IA</h1>
                 <p>Envie currículos e a IA gera o ranking por compatibilidade com a vaga</p>
+                <div className="sessao">
+                    <span>👤 {usuarioLogado ?? ""}</span>
+                    <button type="button" className="btn-sair" onClick={handleLogout}>
+                        Sair
+                    </button>
+                </div>
             </header>
 
             <main className="main">
@@ -177,6 +227,8 @@ export default function App() {
             <footer className="footer">
                 <small>Backend: ASP.NET Core 8 · Frontend: Vite + React · IA: Google Gemini</small>
             </footer>
+
+            {carregando && <LoadingModal totalCurriculos={arquivos.length} />}
         </div>
     );
 }
