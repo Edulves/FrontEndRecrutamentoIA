@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { AlertTriangle, CheckCircle2, Info } from 'lucide-react'
 import { login, registrar, type LoginResponse } from '../auth'
 
 interface Props {
@@ -52,7 +53,7 @@ export default function LoginScreen({ onLogin, aviso }: Props) {
                 setModo('entrar')
                 setPassword('')
                 setConfirmacao('')
-                setSucesso(`Conta "${usuario}" criada! Faça login para começar.`)
+                setSucesso(`Conta "${usuario}" criada. Entre para acessar a plataforma.`)
             } catch (err: any) {
                 setErro(err.message ?? 'Erro desconhecido')
             } finally {
@@ -73,83 +74,117 @@ export default function LoginScreen({ onLogin, aviso }: Props) {
     }
 
     return (
-        <div className="login-wrapper">
-            <form className="card login-card" onSubmit={onSubmit}>
-                <div className="login-brand">
-                    <h1>🎯 Recrutamento IA</h1>
-                    <p>Ranking de currículos com inteligência artificial</p>
+        <div className="login-split">
+            <aside className="login-aside">
+                <span className="brand">
+                    <span className="brand-badge">RS</span>
+                    <span>Recrutamento &amp; Seleção</span>
+                </span>
+                <div className="aside-mid">
+                    <h1>Plataforma de análise e gestão de candidatos</h1>
+                    <p>Apoio ao processo seletivo, da triagem de currículos à decisão do recrutador.</p>
                 </div>
+                <div className="aside-foot">Ambiente corporativo · Acesso restrito</div>
+            </aside>
 
-                {aviso && <div className="aviso">ℹ️ {aviso}</div>}
-                {erro && <div className="erro">⚠️ {erro}</div>}
-                {sucesso && <div className="sucesso">✅ {sucesso}</div>}
+            <div className="login-panel">
+                <div className="login-form">
+                    <h2>Acesso ao Recrutamento</h2>
+                    <p>Entre com suas credenciais para acessar a plataforma.</p>
 
-                <div className="login-tabs">
-                    <button
-                        type="button"
-                        className={modo === 'entrar' ? 'tab ativo' : 'tab'}
-                        onClick={() => trocarModo('entrar')}
-                        disabled={carregando}
-                    >
-                        Entrar
-                    </button>
-                    <button
-                        type="button"
-                        className={modo === 'criar-conta' ? 'tab ativo' : 'tab'}
-                        onClick={() => trocarModo('criar-conta')}
-                        disabled={carregando}
-                    >
-                        Criar conta
-                    </button>
-                </div>
+                    {(aviso || erro || sucesso) && (
+                        <div className="login-alerts">
+                            {aviso && (
+                                <div className="alert alert--info">
+                                    <Info size={15} strokeWidth={1.75} aria-hidden="true" />
+                                    <span>{aviso}</span>
+                                </div>
+                            )}
+                            {erro && (
+                                <div className="alert alert--erro" role="alert">
+                                    <AlertTriangle size={15} strokeWidth={1.75} aria-hidden="true" />
+                                    <span>{erro}</span>
+                                </div>
+                            )}
+                            {sucesso && (
+                                <div className="alert alert--ok">
+                                    <CheckCircle2 size={15} strokeWidth={1.75} aria-hidden="true" />
+                                    <span>{sucesso}</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
-                <label className="label">
-                    <span>Usuário</span>
-                    <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        autoComplete="username"
-                        autoFocus
-                        placeholder="Seu nome de usuário"
-                        disabled={carregando}
-                    />
-                </label>
-
-                <label className="label">
-                    <span>Senha</span>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'}
-                        placeholder="Sua senha"
-                        disabled={carregando}
-                    />
-                </label>
-
-                {modo === 'criar-conta' && (
-                    <label className="label">
-                        <span>Confirmar senha</span>
-                        <input
-                            type="password"
-                            value={confirmacao}
-                            onChange={(e) => setConfirmacao(e.target.value)}
-                            autoComplete="new-password"
-                            placeholder="Repita a senha"
+                    <div className="seg seg--full" role="group" aria-label="Modo de acesso">
+                        <button
+                            type="button"
+                            aria-pressed={modo === 'entrar'}
+                            onClick={() => trocarModo('entrar')}
                             disabled={carregando}
-                        />
-                    </label>
-                )}
+                        >
+                            Entrar
+                        </button>
+                        <button
+                            type="button"
+                            aria-pressed={modo === 'criar-conta'}
+                            onClick={() => trocarModo('criar-conta')}
+                            disabled={carregando}
+                        >
+                            Criar conta
+                        </button>
+                    </div>
 
-                <button type="submit" className="btn-primary" disabled={carregando}>
-                    {carregando
-                        ? 'Aguarde...'
-                        : modo === 'entrar'
-                          ? '🔑 Entrar'
-                          : '📝 Criar conta'}
-                </button>
-            </form>
+                    <form onSubmit={onSubmit}>
+                        <label className="field">
+                            <span>Usuário</span>
+                            <input
+                                className="input"
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
+                                autoComplete="username"
+                                autoFocus
+                                placeholder="Digite seu usuário"
+                                disabled={carregando}
+                            />
+                        </label>
+
+                        <label className="field">
+                            <span>Senha</span>
+                            <input
+                                className="input"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                autoComplete={modo === 'entrar' ? 'current-password' : 'new-password'}
+                                placeholder="Digite sua senha"
+                                disabled={carregando}
+                            />
+                        </label>
+
+                        {modo === 'criar-conta' && (
+                            <label className="field">
+                                <span>Confirmar senha</span>
+                                <input
+                                    className="input"
+                                    type="password"
+                                    value={confirmacao}
+                                    onChange={(e) => setConfirmacao(e.target.value)}
+                                    autoComplete="new-password"
+                                    placeholder="Repita a senha"
+                                    disabled={carregando}
+                                />
+                            </label>
+                        )}
+
+                        <button type="submit" className="btn-primary" disabled={carregando}>
+                            {carregando ? 'Aguarde…' : modo === 'entrar' ? 'Entrar' : 'Criar conta'}
+                        </button>
+                    </form>
+
+                    <div className="login-foot">Ambiente corporativo de recrutamento e seleção</div>
+                </div>
+            </div>
         </div>
     )
 }

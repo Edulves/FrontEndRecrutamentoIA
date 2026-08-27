@@ -1,6 +1,8 @@
-import { useState, type FormEvent, type ChangeEvent, type DragEvent } from "react";
+import { useRef, useState, type FormEvent, type ChangeEvent, type DragEvent } from "react";
+import { AlertTriangle, FileText, Info, Upload } from "lucide-react";
 import type { AnaliseResponse } from "./types";
-import RankingList from "./components/RankingList";
+import AppHeader from "./components/AppHeader";
+import ResultadoAnalise from "./components/ResultadoAnalise";
 import LoginScreen from "./components/LoginScreen";
 import LoadingModal from "./components/LoadingModal";
 import { getToken, getUsuarioLogado, limparSessao, salvarSessao, type LoginResponse } from "./auth";
@@ -13,7 +15,7 @@ Requisitos obrigatórios:
 - ERP (SAP, TOTVS Protheus ou similar)
 - Elaboração de indicadores de produção (OEE, produtividade, giro de estoque)
 
-Diferenciais:
+Requisitos desejáveis:
 - Power BI ou outras ferramentas de BI
 - Metodologias de melhoria contínua (Lean, Six Sigma, Kaizen)
 - Conhecimento em MRP/MPS e gestão de capacidade produtiva
@@ -29,6 +31,7 @@ export default function App() {
     const [erro, setErro] = useState<string | null>(null);
     const [resultado, setResultado] = useState<AnaliseResponse | null>(null);
     const [dragActive, setDragActive] = useState(false);
+    const inputArquivos = useRef<HTMLInputElement>(null);
 
     // Autenticação: a sessão JWT fica persistida no localStorage.
     const [autenticado, setAutenticado] = useState(() => getToken() !== null);
@@ -74,8 +77,10 @@ export default function App() {
         });
     }
 
-    function removerArquivo(nome: string) {
-        setArquivos((prev) => prev.filter((a) => a.name !== nome));
+    function limparArquivos() {
+        setArquivos([]);
+        setErro(null);
+        if (inputArquivos.current) inputArquivos.current.value = "";
     }
 
     function onDrag(e: DragEvent<HTMLDivElement>) {
@@ -144,91 +149,176 @@ export default function App() {
     }
 
     if (!autenticado) {
+        return <LoginScreen onLogin={handleLoginSucesso} aviso={avisoLogin} />;
+    }
+
+    // Tela 3 — resultado da análise
+    if (resultado) {
         return (
-            <div className="app">
-                <LoginScreen onLogin={handleLoginSucesso} aviso={avisoLogin} />
-                <footer className="footer">
-                    <small>Backend: ASP.NET Core 8 · Frontend: Vite + React · IA: Google Gemini</small>
-                </footer>
-            </div>
+            <>
+                <AppHeader usuario={usuarioLogado} onSair={handleLogout} />
+                <main className="page">
+                    <ResultadoAnalise data={resultado} onNovaAnalise={() => setResultado(null)} />
+                </main>
+            </>
         );
     }
 
+    // Tela 2 — nova análise
+    const nomesResumidos =
+        arquivos.length <= 2
+            ? arquivos.map((a) => a.name).join(", ")
+            : `${arquivos[0].name}, ${arquivos[1].name} e mais ${arquivos.length - 2}`;
+
     return (
-        <div className="app">
-            <header className="header">
-                <h1>🎯 Recrutamento IA</h1>
-                <p>Envie currículos e a IA gera o ranking por compatibilidade com a vaga</p>
-                <div className="sessao">
-                    <span>👤 {usuarioLogado ?? ""}</span>
-                    <button type="button" className="btn-sair" onClick={handleLogout}>
-                        Sair
-                    </button>
+        <>
+            <AppHeader usuario={usuarioLogado} onSair={handleLogout} />
+
+            <main className="page">
+                <div className="breadcrumb">
+                    <span>Análises</span>
+                    <span>/</span>
+                    <strong>Nova análise</strong>
                 </div>
-            </header>
+                <h1>Nova análise</h1>
+                <p className="page-sub">Avalie candidatos de acordo com os requisitos da vaga.</p>
 
-            <main className="main">
-                <form onSubmit={onSubmit} className="card">
-                    <label className="label">
-                        <span>Descrição da Vaga</span>
-                        <textarea
-                            value={descricaoVaga}
-                            onChange={(e) => setDescricaoVaga(e.target.value)}
-                            rows={10}
-                            placeholder="Cole aqui a descrição completa da vaga, requisitos e diferenciais..."
-                            disabled={carregando}
-                        />
-                    </label>
-
-                    <label className="label">
-                        <span>Currículos (PDF, DOCX ou TXT — até {MAX_CURRICULOS} arquivos)</span>
-                        <div
-                            className={`dropzone ${dragActive ? "active" : ""}`}
-                            onDragEnter={onDrag}
-                            onDragLeave={onDrag}
-                            onDragOver={onDrag}
-                            onDrop={onDrop}
-                        >
-                            <input type="file" multiple accept=".pdf,.docx,.txt" onChange={onFileChange} disabled={carregando} id="file-input" />
-                            <label htmlFor="file-input" className="dropzone-label">
-                                📎 Arraste arquivos aqui ou <span className="link">clique para selecionar</span>
+                <div className="layout">
+                    <form onSubmit={onSubmit} className="card form-card">
+                        <div className="bloco">
+                            <label className="section-label" htmlFor="descricao-vaga">
+                                Descrição da vaga
                             </label>
+                            <textarea
+                                id="descricao-vaga"
+                                className="textarea"
+                                value={descricaoVaga}
+                                onChange={(e) => setDescricaoVaga(e.target.value)}
+                                rows={11}
+                                placeholder="Cole aqui a descrição completa da vaga, requisitos obrigatórios e desejáveis…"
+                                disabled={carregando}
+                            />
                         </div>
-                    </label>
 
-                    {arquivos.length > 0 && (
-                        <div className="arquivos-lista">
-                            <strong>{arquivos.length} arquivo(s) selecionado(s):</strong>
-                            <ul>
-                                {arquivos.map((a) => (
-                                    <li key={a.name}>
-                                        <span>
-                                            {a.name} <em>({(a.size / 1024).toFixed(0)} KB)</em>
-                                        </span>
-                                        <button type="button" onClick={() => removerArquivo(a.name)} disabled={carregando}>
-                                            ✕
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
+                        <div className="bloco">
+                            <span className="section-label" id="label-curriculos">
+                                Currículos
+                            </span>
+                            <div
+                                className={`dropzone ${dragActive ? "active" : ""}`}
+                                onDragEnter={onDrag}
+                                onDragLeave={onDrag}
+                                onDragOver={onDrag}
+                                onDrop={onDrop}
+                                onClick={() => inputArquivos.current?.click()}
+                                role="button"
+                                tabIndex={0}
+                                aria-labelledby="label-curriculos"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        inputArquivos.current?.click();
+                                    }
+                                }}
+                            >
+                                <input
+                                    ref={inputArquivos}
+                                    type="file"
+                                    multiple
+                                    accept=".pdf,.docx,.txt"
+                                    onChange={onFileChange}
+                                    disabled={carregando}
+                                    id="file-input"
+                                    aria-label="Currículos"
+                                />
+                                <span className="tile" aria-hidden="true">
+                                    <Upload size={20} strokeWidth={1.75} color="#1f4e79" />
+                                </span>
+                                <span>
+                                    Arraste os arquivos para esta área ou{" "}
+                                    <span className="destaque">selecione no computador</span>
+                                </span>
+                                <small>PDF, DOCX ou TXT · Até {MAX_CURRICULOS} arquivos</small>
+                            </div>
+
+                            {arquivos.length > 0 && (
+                                <div className="file-summary">
+                                    <FileText size={16} strokeWidth={1.75} color="#1f4e79" aria-hidden="true" />
+                                    <span className="qtd">
+                                        {arquivos.length} arquivo{arquivos.length === 1 ? "" : "s"} selecionado
+                                        {arquivos.length === 1 ? "" : "s"}
+                                    </span>
+                                    <span className="nomes">{nomesResumidos}</span>
+                                    <button type="button" onClick={limparArquivos} disabled={carregando}>
+                                        Remover
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                    )}
 
-                    {erro && <div className="erro">⚠️ {erro}</div>}
+                        {erro && (
+                            <div className="alert alert--erro" role="alert">
+                                <AlertTriangle size={15} strokeWidth={1.75} aria-hidden="true" />
+                                <span>{erro}</span>
+                            </div>
+                        )}
 
-                    <button type="submit" className="btn-primary" disabled={carregando}>
-                        {carregando ? "🤖 Analisando currículos..." : "🚀 Analisar e Gerar Ranking"}
-                    </button>
-                </form>
+                        <div className="card-actions">
+                            <button
+                                type="submit"
+                                className="btn-primary"
+                                disabled={carregando || arquivos.length === 0}
+                            >
+                                {carregando ? (
+                                    <>
+                                        <span className="spinner" aria-hidden="true" />
+                                        Analisando currículos…
+                                    </>
+                                ) : (
+                                    "Iniciar análise"
+                                )}
+                            </button>
+                        </div>
+                    </form>
 
-                {resultado && <RankingList data={resultado} />}
+                    <aside className="aside-col">
+                        <div className="card steps-card">
+                            <span className="section-label">Processo</span>
+                            <div className="step">
+                                <span className="step-num">1</span>
+                                <span className="step-label">Descrição da vaga</span>
+                                <span className="step-status">
+                                    {descricaoVaga.trim() ? "Concluído" : "Pendente"}
+                                </span>
+                            </div>
+                            <div className="step">
+                                <span className="step-num">2</span>
+                                <span className="step-label">Currículos</span>
+                                <span className="step-status">
+                                    {arquivos.length > 0
+                                        ? `${arquivos.length} arquivo${arquivos.length === 1 ? "" : "s"}`
+                                        : "Pendente"}
+                                </span>
+                            </div>
+                            <div className="step">
+                                <span className="step-num">3</span>
+                                <span className="step-label">Análise de compatibilidade</span>
+                                <span className="step-status">{carregando ? "Em curso" : "Aguardando"}</span>
+                            </div>
+                        </div>
+
+                        <div className="nota">
+                            <Info size={15} strokeWidth={1.75} color="#98a2b3" aria-hidden="true" />
+                            <p>
+                                Avaliação automatizada dos currículos em relação aos requisitos da vaga,
+                                assistida por inteligência artificial.
+                            </p>
+                        </div>
+                    </aside>
+                </div>
             </main>
 
-            <footer className="footer">
-                <small>Backend: ASP.NET Core 8 · Frontend: Vite + React · IA: Google Gemini</small>
-            </footer>
-
             {carregando && <LoadingModal totalCurriculos={arquivos.length} />}
-        </div>
+        </>
     );
 }

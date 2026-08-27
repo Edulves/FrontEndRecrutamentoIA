@@ -69,23 +69,32 @@ describe("App — autenticação por usuário/senha + JWT", () => {
         vi.restoreAllMocks();
     });
 
+    /** Na tela de acesso a aba e o botão de envio têm o mesmo rótulo; aqui só o envio interessa. */
+    function botaoSubmit(nome: string): HTMLElement {
+        const achado = screen
+            .getAllByRole("button", { name: nome })
+            .find((b) => b.getAttribute("type") === "submit");
+        if (!achado) throw new Error(`Botão de envio "${nome}" não encontrado`);
+        return achado;
+    }
+
     async function fazerLogin(user: UserEvent) {
         render(<App />);
         await user.type(screen.getByLabelText(/Usuário/i), USUARIO);
         await user.type(screen.getByLabelText(/Senha/i), SENHA);
-        await user.click(screen.getByRole("button", { name: "🔑 Entrar" }));
-        await screen.findByRole("button", { name: /Analisar e Gerar Ranking/i });
+        await user.click(botaoSubmit("Entrar"));
+        await screen.findByRole("button", { name: /Iniciar análise/i });
     }
 
     async function preencherEEnviar(user: UserEvent, arquivos: File[]) {
-        const textarea = screen.getByRole("textbox", { name: /Descrição da Vaga/i });
+        const textarea = screen.getByRole("textbox", { name: /Descrição da vaga/i });
         await user.clear(textarea);
         await user.type(textarea, DESCRICAO);
 
         const inputArquivo = screen.getByLabelText(/Currículos/i, { selector: 'input[type="file"]' });
         await user.upload(inputArquivo, arquivos);
 
-        await user.click(screen.getByRole("button", { name: /Analisar e Gerar Ranking/i }));
+        await user.click(screen.getByRole("button", { name: /Iniciar análise/i }));
     }
 
     it("mostra a tela de login e envia as credenciais para /api/auth/login", async () => {
@@ -97,9 +106,9 @@ describe("App — autenticação por usuário/senha + JWT", () => {
 
         await user.type(screen.getByLabelText(/Usuário/i), USUARIO);
         await user.type(screen.getByLabelText(/Senha/i), SENHA);
-        await user.click(screen.getByRole("button", { name: "🔑 Entrar" }));
+        await user.click(botaoSubmit("Entrar"));
 
-        await screen.findByRole("button", { name: /Analisar e Gerar Ranking/i });
+        await screen.findByRole("button", { name: /Iniciar análise/i });
 
         const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
         expect(url).toBe("/api/auth/login");
@@ -140,7 +149,7 @@ it("renderiza o ranking retornado pela API", async () => {
         ]);
 
         expect(await screen.findByText(/Maria Silva/)).toBeInTheDocument();
-        expect(screen.getByText("95")).toBeInTheDocument();
+        expect(screen.getByText("95%")).toBeInTheDocument();
         expect(screen.getByText(/João Souza/)).toBeInTheDocument();
     });
 
@@ -148,9 +157,12 @@ it("renderiza o ranking retornado pela API", async () => {
         const user = userEvent.setup();
         await fazerLogin(user);
 
-        await user.click(screen.getByRole("button", { name: /Analisar e Gerar Ranking/i }));
+        // Sem arquivo o envio fica bloqueado no próprio botão (nada é enviado).
+        const iniciar = screen.getByRole("button", { name: /Iniciar análise/i });
+        expect(iniciar).toBeDisabled();
 
-        expect(screen.getByText(/Envie ao menos 1 currículo/)).toBeInTheDocument();
+        await user.click(iniciar);
+
         expect(fetchMock.mock.calls.filter((c) => c[0] === "/api/analisar")).toHaveLength(0);
     });
 
@@ -185,7 +197,7 @@ it("renderiza o ranking retornado pela API", async () => {
         render(<App />);
         await user.type(screen.getByLabelText(/Usuário/i), USUARIO);
         await user.type(screen.getByLabelText(/Senha/i), "senha-errada");
-        await user.click(screen.getByRole("button", { name: "🔑 Entrar" }));
+        await user.click(botaoSubmit("Entrar"));
 
         expect(await screen.findByText(/Nome de usuário ou senha inválidos/)).toBeInTheDocument();
     });
@@ -214,11 +226,11 @@ it("renderiza o ranking retornado pela API", async () => {
         await user.type(screen.getByLabelText(/Usuário/i), USUARIO);
         await user.type(screen.getByLabelText(/^Senha$/), SENHA);
         await user.type(screen.getByLabelText(/Confirmar senha/i), SENHA);
-        await user.click(screen.getByRole("button", { name: "📝 Criar conta" }));
+        await user.click(botaoSubmit("Criar conta"));
 
         expect(await screen.findByText(/Conta "admin" criada/i)).toBeInTheDocument();
         expect(fetchMock).toHaveBeenCalledWith("/api/auth/registrar", expect.anything());
-        expect(screen.getByRole("button", { name: "🔑 Entrar" })).toBeInTheDocument();
+        expect(botaoSubmit("Entrar")).toBeInTheDocument();
     });
 
     it("faz logout ao clicar em Sair", async () => {

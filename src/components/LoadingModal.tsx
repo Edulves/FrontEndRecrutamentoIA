@@ -1,6 +1,5 @@
-// POP-UP de loading exibido enquanto a análise de currículos não retorna.
-// O overlay desfoca a tela de fundo (backdrop-filter: blur()) e bloqueia
-// a interação com o conteúdo até a operação terminar.
+// Overlay exibido enquanto a análise de currículos não retorna: desfoca o fundo
+// e bloqueia a interação até a operação terminar.
 
 interface Props {
     /** Número de currículos sendo analisados (para a mensagem). */
@@ -16,12 +15,12 @@ export default function LoadingModal({ totalCurriculos }: Props) {
             aria-label="Analisando currículos"
         >
             <div className="loading-card">
-                <div className="loading-spinner" aria-hidden="true" />
-                <strong>🤖 Analisando currículos...</strong>
+                <div className="spinner" aria-hidden="true" />
+                <strong>Analisando currículos…</strong>
                 <p>
                     {totalCurriculos && totalCurriculos > 0
-                        ? `${totalCurriculos} currículo(s) sendo processado(s) pela IA.`
-                        : "A IA está gerando o ranking de compatibilidade."}
+                        ? `${totalCurriculos} currículo${totalCurriculos === 1 ? '' : 's'} em avaliação contra os requisitos da vaga.`
+                        : 'Avaliando os currículos contra os requisitos da vaga.'}
                 </p>
                 <small>Isso pode levar alguns segundos — não feche a página.</small>
             </div>
