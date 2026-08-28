@@ -35,6 +35,10 @@ export interface Candidato {
   pontosFortes: string[]
   pontosFracos: string[]
   nomeArquivo: string
+  /** Arquivo original do currículo no backend; null nos importados antes do armazenamento. */
+  curriculoArquivo?: string | null
+  /** Foto de perfil no backend (extraída do currículo ou enviada à mão). */
+  fotoArquivo?: string | null
   criadoEmUtc: string
   atualizadoEmUtc: string
   historico: AnaliseHistorico[]

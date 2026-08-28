@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { AlertTriangle, Award, Briefcase, Info } from 'lucide-react'
+import { AlertTriangle, Award, Briefcase, FileText, Info } from 'lucide-react'
 import type { CadastroVagaResponse, Candidato, Vaga } from '../types'
 import { getToken } from '../auth'
+import { abrirCurriculo } from '../curriculo'
 import { CORTE_RECOMENDADO } from './ResultadoAnalise'
 import { melhoresPosicionados } from './DashboardPage'
 import LoadingModal from './LoadingModal'
@@ -125,6 +126,23 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
         }
     }
 
+    /** Candidato do cadastro dono deste id, se tiver currículo armazenado. */
+    function candidatoComCurriculo(candidatoId: string): Candidato | null {
+        const c = (candidatos ?? []).find((x) => x.id === candidatoId)
+        return c?.curriculoArquivo ? c : null
+    }
+
+    async function verCurriculo(candidatoId: string) {
+        const c = candidatoComCurriculo(candidatoId)
+        if (!c) return
+        setErro(null)
+        try {
+            if ((await abrirCurriculo(c.id, c.nomeArquivo)) === 'sem-sessao') onSessaoExpirada()
+        } catch (err: any) {
+            setErro(err.message ?? 'Erro desconhecido')
+        }
+    }
+
     // ── Resultado do cadastro: candidato ideal + ranking completo ──
     if (resultado) {
         const [ideal, ...demais] = resultado.ranking
@@ -161,6 +179,12 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
                         <span>{erroCarga}</span>
                     </div>
                 )}
+                {erro && (
+                    <div className="alert alert--erro" role="alert">
+                        <AlertTriangle size={15} strokeWidth={1.75} aria-hidden="true" />
+                        <span>{erro}</span>
+                    </div>
+                )}
 
                 {ideal ? (
                     <div className="card ideal-card">
@@ -189,6 +213,16 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
                             >
                                 {ideal.score >= CORTE_RECOMENDADO ? 'Recomendado' : 'Em análise'}
                             </span>
+                            {candidatoComCurriculo(ideal.candidatoId) && (
+                                <button
+                                    type="button"
+                                    className="btn-secondary btn-curriculo"
+                                    onClick={() => verCurriculo(ideal.candidatoId)}
+                                >
+                                    <FileText size={15} strokeWidth={1.75} aria-hidden="true" />
+                                    Ver currículo
+                                </button>
+                            )}
                         </div>
                         {ideal.resumo && <p className="ideal-resumo">{ideal.resumo}</p>}
                     </div>
@@ -219,6 +253,7 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
                                         <th>Candidato</th>
                                         <th>Aderência ao perfil</th>
                                         <th>Status</th>
+                                        <th>Currículo</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -255,6 +290,21 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
                                                         ? 'Recomendado'
                                                         : 'Em análise'}
                                                 </span>
+                                            </td>
+                                            <td>
+                                                {candidatoComCurriculo(r.candidatoId) ? (
+                                                    <button
+                                                        type="button"
+                                                        className="btn-icon"
+                                                        aria-label={`Ver currículo de ${r.nome}`}
+                                                        title="Ver currículo"
+                                                        onClick={() => verCurriculo(r.candidatoId)}
+                                                    >
+                                                        <FileText size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                    </button>
+                                                ) : (
+                                                    <span className="col-muted">—</span>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -363,16 +413,29 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
                                         <span className="vaga-titulo" title={v.titulo}>
                                             {v.titulo}
                                         </span>
-                                        <span
-                                            className="vaga-meta"
-                                            title={ideal ? `Ideal: ${ideal.nome} (${ideal.score}%)` : undefined}
-                                        >
-                                            {dataCurta(v.criadaEmUtc)}
-                                            {candidatos === null
-                                                ? ' · Carregando…'
-                                                : ideal
-                                                  ? ` · Ideal: ${ideal.nome} (${ideal.score}%)`
-                                                  : ' · Sem candidatos analisados'}
+                                        <span className="vaga-meta-linha">
+                                            <span
+                                                className="vaga-meta"
+                                                title={ideal ? `Ideal: ${ideal.nome} (${ideal.score}%)` : undefined}
+                                            >
+                                                {dataCurta(v.criadaEmUtc)}
+                                                {candidatos === null
+                                                    ? ' · Carregando…'
+                                                    : ideal
+                                                      ? ` · Ideal: ${ideal.nome} (${ideal.score}%)`
+                                                      : ' · Sem candidatos analisados'}
+                                            </span>
+                                            {ideal && candidatoComCurriculo(ideal.id) && (
+                                                <button
+                                                    type="button"
+                                                    className="btn-icon"
+                                                    aria-label={`Ver currículo de ${ideal.nome}`}
+                                                    title={`Ver currículo de ${ideal.nome}`}
+                                                    onClick={() => verCurriculo(ideal.id)}
+                                                >
+                                                    <FileText size={14} strokeWidth={1.75} aria-hidden="true" />
+                                                </button>
+                                            )}
                                         </span>
                                     </div>
                                 )

@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useState } from 'react'
-import { AlertTriangle, ChevronDown, ChevronRight, Info, Users } from 'lucide-react'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import { AlertTriangle, Camera, ChevronDown, ChevronRight, FileText, Info, Users } from 'lucide-react'
 import type { Candidato } from '../types'
 import { getToken } from '../auth'
+import { abrirCurriculo } from '../curriculo'
 
 interface Props {
     /** Sessão expirada: derruba para a tela de login. */
@@ -13,10 +14,95 @@ function dataCurta(iso: string): string {
     return isNaN(d.getTime()) ? '' : d.toLocaleDateString('pt-BR')
 }
 
-function Detalhe({ c }: { c: Candidato }) {
+/** Foto de perfil do candidato (busca autenticada), com a inicial como fallback. */
+function AvatarCandidato({ c, versao }: { c: Candidato; versao: number }) {
+    const [url, setUrl] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (!c.fotoArquivo) {
+            setUrl(null)
+            return
+        }
+        const token = getToken()
+        if (!token) return
+        let ativo = true
+        let objectUrl: string | null = null
+        fetch(`/api/candidatos/${c.id}/foto`, { headers: { Authorization: `Bearer ${token}` } })
+            .then((resp) => (resp.ok ? resp.blob() : null))
+            .then((blob) => {
+                if (blob && ativo) {
+                    objectUrl = URL.createObjectURL(blob)
+                    setUrl(objectUrl)
+                }
+            })
+            .catch(() => {
+                // sem foto o avatar cai na inicial
+            })
+        return () => {
+            ativo = false
+            if (objectUrl) URL.revokeObjectURL(objectUrl)
+        }
+    }, [c.id, c.fotoArquivo, versao])
+
+    // alt vazio: a imagem é decorativa dentro do botão que já carrega o nome
+    if (url) return <img className="avatar avatar--foto" src={url} alt="" />
+    const inicial = (c.nome ?? '?').trim().charAt(0) || '?'
+    return (
+        <span className="avatar" aria-hidden="true">
+            {inicial}
+        </span>
+    )
+}
+
+interface DetalheProps {
+    c: Candidato
+    onVerCurriculo: (c: Candidato) => void
+    onEnviarFoto: (c: Candidato, arquivo: File) => void
+}
+
+function Detalhe({ c, onVerCurriculo, onEnviarFoto }: DetalheProps) {
+    const inputFoto = useRef<HTMLInputElement>(null)
+
     return (
         <tr className="detalhe">
             <td colSpan={5}>
+                <div className="detalhe-acoes">
+                    {c.curriculoArquivo ? (
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => onVerCurriculo(c)}
+                        >
+                            <FileText size={15} strokeWidth={1.75} aria-hidden="true" />
+                            Ver currículo
+                        </button>
+                    ) : (
+                        <span className="detalhe-sem-arquivo">
+                            Currículo não disponível (importado antes do armazenamento de arquivos)
+                        </span>
+                    )}
+                    <input
+                        ref={inputFoto}
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.webp"
+                        className="input-oculto"
+                        aria-label={`Foto de perfil de ${c.nome}`}
+                        onChange={(e) => {
+                            const arquivo = e.target.files?.[0]
+                            if (arquivo) onEnviarFoto(c, arquivo)
+                            e.target.value = ''
+                        }}
+                    />
+                    <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => inputFoto.current?.click()}
+                    >
+                        <Camera size={15} strokeWidth={1.75} aria-hidden="true" />
+                        {c.fotoArquivo ? 'Trocar foto' : 'Adicionar foto'}
+                    </button>
+                </div>
+
                 {c.resumo && <p className="resumo">{c.resumo}</p>}
                 <div className="colunas">
                     {c.experiencias.length > 0 && (
@@ -83,14 +169,19 @@ export default function CandidatosPage({ onSessaoExpirada }: Props) {
     const [candidatos, setCandidatos] = useState<Candidato[] | null>(null)
     const [erro, setErro] = useState<string | null>(null)
     const [aberto, setAberto] = useState<string | null>(null)
+    // Versão por candidato: só o avatar de quem trocou a foto rebusca a imagem
+    // (o nome do arquivo pode não mudar ao trocar).
+    const [fotoVersoes, setFotoVersoes] = useState<Record<string, number>>({})
+    // Invalida respostas atrasadas de cargas anteriores.
+    const geracaoRef = useRef(0)
 
-    useEffect(() => {
+    function carregar() {
         const token = getToken()
         if (!token) {
             onSessaoExpirada()
             return
         }
-        let ativo = true
+        const geracao = ++geracaoRef.current
         fetch('/api/candidatos', { headers: { Authorization: `Bearer ${token}` } })
             .then(async (resp) => {
                 if (resp.status === 401) {
@@ -99,17 +190,63 @@ export default function CandidatosPage({ onSessaoExpirada }: Props) {
                 }
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${await resp.text()}`)
                 const data: Candidato[] = await resp.json()
-                if (ativo) setCandidatos(data)
+                if (geracao === geracaoRef.current) setCandidatos(data)
             })
             .catch((err) => {
-                if (ativo) setErro(err.message ?? 'Erro desconhecido')
+                if (geracao === geracaoRef.current) setErro(err.message ?? 'Erro desconhecido')
             })
-        return () => {
-            ativo = false
-        }
+    }
+
+    useEffect(() => {
+        carregar()
         // ponytail: busca uma vez ao abrir a página; recarregar = navegar de novo
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
+
+    async function verCurriculo(c: Candidato) {
+        setErro(null)
+        try {
+            if ((await abrirCurriculo(c.id, c.nomeArquivo)) === 'sem-sessao') onSessaoExpirada()
+        } catch (err: any) {
+            setErro(err.message ?? 'Erro desconhecido')
+        }
+    }
+
+    async function enviarFoto(c: Candidato, arquivo: File) {
+        const token = getToken()
+        if (!token) {
+            onSessaoExpirada()
+            return
+        }
+        setErro(null)
+        try {
+            const fd = new FormData()
+            fd.append('foto', arquivo)
+            const resp = await fetch(`/api/candidatos/${c.id}/foto`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                body: fd,
+            })
+            if (resp.status === 401) {
+                onSessaoExpirada()
+                return
+            }
+            if (!resp.ok) {
+                let mensagem = `HTTP ${resp.status}`
+                try {
+                    const data = await resp.json()
+                    if (data?.erro) mensagem = data.erro
+                } catch {
+                    // corpo não-JSON — fica a mensagem com o status
+                }
+                throw new Error(mensagem)
+            }
+            setFotoVersoes((m) => ({ ...m, [c.id]: (m[c.id] ?? 0) + 1 }))
+            carregar()
+        } catch (err: any) {
+            setErro(err.message ?? 'Erro desconhecido')
+        }
+    }
 
     return (
         <>
@@ -180,6 +317,7 @@ export default function CandidatosPage({ onSessaoExpirada }: Props) {
                                                             ) : (
                                                                 <ChevronRight size={15} strokeWidth={1.75} aria-hidden="true" />
                                                             )}
+                                                            <AvatarCandidato c={c} versao={fotoVersoes[c.id] ?? 0} />
                                                             {c.nome}
                                                         </button>
                                                     </td>
@@ -206,7 +344,13 @@ export default function CandidatosPage({ onSessaoExpirada }: Props) {
                                                             : '—'}
                                                     </td>
                                                 </tr>
-                                                {expandido && <Detalhe c={c} />}
+                                                {expandido && (
+                                                    <Detalhe
+                                                        c={c}
+                                                        onVerCurriculo={verCurriculo}
+                                                        onEnviarFoto={enviarFoto}
+                                                    />
+                                                )}
                                             </Fragment>
                                         )
                                     })}

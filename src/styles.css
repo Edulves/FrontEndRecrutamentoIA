@@ -373,7 +373,8 @@ button:disabled {
 }
 
 .topbar-inner {
-    max-width: 1080px;
+    /* layout administrativo: ~92% da largura útil, com teto para monitores muito largos */
+    max-width: min(1600px, 92%);
     margin: 0 auto;
     padding: 0 24px;
     height: 56px;
@@ -457,9 +458,17 @@ button:disabled {
 }
 
 .page {
-    max-width: 1080px;
+    max-width: min(1600px, 92%);
     margin: 0 auto;
     padding: 32px 24px 64px;
+}
+
+/* Em telas menores o container volta a ocupar tudo, como antes */
+@media (max-width: 768px) {
+    .topbar-inner,
+    .page {
+        max-width: 100%;
+    }
 }
 
 .breadcrumb {
@@ -1176,16 +1185,86 @@ button.nav-item[aria-current="page"] {
     white-space: nowrap;
 }
 
+.vaga-meta-linha {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
 .vaga-meta {
     font-size: 12.5px;
     color: var(--faint);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 0;
+}
+
+/* Botão só-ícone para abrir o currículo em espaços apertados */
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 3px;
+    cursor: pointer;
+    color: var(--link);
+    border-radius: var(--radius-badge);
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+}
+
+.btn-icon:hover {
+    background: var(--tint);
+}
+
+/* "Ver currículo" com ícone dentro do card do candidato ideal */
+.btn-curriculo {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    font-size: 13px;
 }
 
 .vaga-vazio {
     margin: 0;
     font-size: 13px;
     color: var(--muted);
+}
+
+/* ── Candidatos: foto de perfil e arquivos ───────────────────────────── */
+
+/* Foto real no lugar do círculo de inicial (mesmas medidas do .avatar) */
+.avatar--foto {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex: none;
+}
+
+.detalhe-acoes {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.detalhe-acoes .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 12px;
+    font-size: 13px;
+}
+
+.detalhe-sem-arquivo {
+    font-size: 12.5px;
+    color: var(--faint);
+}
+
+.input-oculto {
+    display: none;
 }
