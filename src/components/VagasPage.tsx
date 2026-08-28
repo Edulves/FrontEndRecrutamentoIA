@@ -23,6 +23,8 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
     const [titulo, setTitulo] = useState('')
     const [descricao, setDescricao] = useState('')
     const [enviando, setEnviando] = useState(false)
+    // Vaga já cadastrada aberta a partir da lista (ranking vem do histórico).
+    const [vagaAberta, setVagaAberta] = useState<Vaga | null>(null)
     // Erro do formulário (validação/submit) separado do erro de carregamento das listas.
     const [erro, setErro] = useState<string | null>(null)
     const [erroCarga, setErroCarga] = useState<string | null>(null)
@@ -213,7 +215,7 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
                             >
                                 {ideal.score >= CORTE_RECOMENDADO ? 'Recomendado' : 'Em análise'}
                             </span>
-                            {candidatoComCurriculo(ideal.candidatoId) && (
+                            {candidatoComCurriculo(ideal.candidatoId) ? (
                                 <button
                                     type="button"
                                     className="btn-secondary btn-curriculo"
@@ -222,6 +224,11 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
                                     <FileText size={15} strokeWidth={1.75} aria-hidden="true" />
                                     Ver currículo
                                 </button>
+                            ) : (
+                                <span className="detalhe-sem-arquivo">
+                                    Currículo não disponível — reimporte o currículo em Análises
+                                    para anexá-lo ao cadastro.
+                                </span>
                             )}
                         </div>
                         {ideal.resumo && <p className="ideal-resumo">{ideal.resumo}</p>}
@@ -325,6 +332,185 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
         )
     }
 
+    // ── Vaga já cadastrada, aberta a partir da lista ──
+    if (vagaAberta) {
+        const linhas = melhoresPosicionados(candidatos ?? [], vagaAberta.titulo)
+        const [ideal, ...demais] = linhas
+        return (
+            <>
+                <div className="breadcrumb">
+                    <span>Vagas</span>
+                    <span>/</span>
+                    <strong>{vagaAberta.titulo}</strong>
+                </div>
+
+                <div className="result-head">
+                    <div>
+                        <h1>{vagaAberta.titulo}</h1>
+                        <p>
+                            Vaga cadastrada em {dataCurta(vagaAberta.criadaEmUtc)} ·{' '}
+                            {linhas.length} candidato{linhas.length === 1 ? '' : 's'} no ranking
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => setVagaAberta(null)}
+                    >
+                        Voltar para Vagas
+                    </button>
+                </div>
+
+                {erroCarga && (
+                    <div className="alert alert--erro" role="alert">
+                        <AlertTriangle size={15} strokeWidth={1.75} aria-hidden="true" />
+                        <span>{erroCarga}</span>
+                    </div>
+                )}
+                {erro && (
+                    <div className="alert alert--erro" role="alert">
+                        <AlertTriangle size={15} strokeWidth={1.75} aria-hidden="true" />
+                        <span>{erro}</span>
+                    </div>
+                )}
+
+                <details className="vaga-descricao">
+                    <summary>Descrição da vaga</summary>
+                    <p>{vagaAberta.descricao}</p>
+                </details>
+
+                {ideal ? (
+                    <div className="card ideal-card">
+                        <span className="ideal-rotulo">
+                            <Award size={16} strokeWidth={1.75} aria-hidden="true" />
+                            Candidato ideal para esta vaga
+                        </span>
+                        <div className="ideal-linha">
+                            <strong className="ideal-nome">{ideal.nome}</strong>
+                            <span className="aderencia">
+                                <span className="pct">{ideal.score}%</span>
+                                <span className="bar">
+                                    <span
+                                        style={{
+                                            width: `${Math.min(100, Math.max(0, ideal.score))}%`,
+                                        }}
+                                    />
+                                </span>
+                            </span>
+                            <span
+                                className={
+                                    ideal.score >= CORTE_RECOMENDADO
+                                        ? 'badge badge--ok'
+                                        : 'badge badge--neutro'
+                                }
+                            >
+                                {ideal.score >= CORTE_RECOMENDADO ? 'Recomendado' : 'Em análise'}
+                            </span>
+                            {candidatoComCurriculo(ideal.id) ? (
+                                <button
+                                    type="button"
+                                    className="btn-secondary btn-curriculo"
+                                    onClick={() => verCurriculo(ideal.id)}
+                                >
+                                    <FileText size={15} strokeWidth={1.75} aria-hidden="true" />
+                                    Ver currículo
+                                </button>
+                            ) : (
+                                <span className="detalhe-sem-arquivo">
+                                    Currículo não disponível — reimporte o currículo em Análises
+                                    para anexá-lo ao cadastro.
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="card table-card vazio-card">
+                        <Briefcase size={20} strokeWidth={1.75} color="#98a2b3" aria-hidden="true" />
+                        <p>Nenhuma análise registrada para esta vaga ainda.</p>
+                    </div>
+                )}
+
+                {demais.length > 0 && (
+                    <div className="card table-card">
+                        <div className="tabela-scroll">
+                            <table className="tabela">
+                                <thead>
+                                    <tr>
+                                        <th>Posição</th>
+                                        <th>Candidato</th>
+                                        <th>Aderência ao perfil</th>
+                                        <th>Status</th>
+                                        <th>Currículo</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {demais.map((r, i) => (
+                                        <tr key={r.id}>
+                                            <td>
+                                                <span className={`pos ${i < 2 ? 'pos--top' : ''}`}>
+                                                    {i + 2}
+                                                </span>
+                                            </td>
+                                            <td className="col-candidato">{r.nome}</td>
+                                            <td>
+                                                <span className="aderencia">
+                                                    <span className="pct">{r.score}%</span>
+                                                    <span className="bar">
+                                                        <span
+                                                            style={{
+                                                                width: `${Math.min(100, Math.max(0, r.score))}%`,
+                                                            }}
+                                                        />
+                                                    </span>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    className={
+                                                        r.score >= CORTE_RECOMENDADO
+                                                            ? 'badge badge--ok'
+                                                            : 'badge badge--neutro'
+                                                    }
+                                                >
+                                                    {r.score >= CORTE_RECOMENDADO
+                                                        ? 'Recomendado'
+                                                        : 'Em análise'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {candidatoComCurriculo(r.id) ? (
+                                                    <button
+                                                        type="button"
+                                                        className="btn-icon"
+                                                        aria-label={`Ver currículo de ${r.nome}`}
+                                                        title="Ver currículo"
+                                                        onClick={() => verCurriculo(r.id)}
+                                                    >
+                                                        <FileText size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                    </button>
+                                                ) : (
+                                                    <span className="col-muted">—</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
+
+                <div className="result-nota">
+                    <Info size={15} strokeWidth={1.75} color="#98a2b3" aria-hidden="true" />
+                    <p>
+                        Ranking montado a partir do melhor score de cada candidato nas análises
+                        desta vaga. Novos currículos importados contra ela entram aqui.
+                    </p>
+                </div>
+            </>
+        )
+    }
+
     // ── Cadastro + lista de vagas ──
     return (
         <>
@@ -410,9 +596,14 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
                                 const ideal = melhoresPosicionados(candidatos ?? [], v.titulo)[0]
                                 return (
                                     <div key={v.id} className="vaga-item">
-                                        <span className="vaga-titulo" title={v.titulo}>
+                                        <button
+                                            type="button"
+                                            className="vaga-abrir"
+                                            title={v.titulo}
+                                            onClick={() => setVagaAberta(v)}
+                                        >
                                             {v.titulo}
-                                        </span>
+                                        </button>
                                         <span className="vaga-meta-linha">
                                             <span
                                                 className="vaga-meta"

@@ -1185,6 +1185,46 @@ button.nav-item[aria-current="page"] {
     white-space: nowrap;
 }
 
+/* Título clicável na lista de vagas: abre a vaga cadastrada */
+.vaga-abrir {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--link);
+    cursor: pointer;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vaga-abrir:hover {
+    text-decoration: underline;
+}
+
+/* Descrição da vaga aberta (recolhida por padrão) */
+.vaga-descricao {
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.vaga-descricao summary {
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--link);
+}
+
+.vaga-descricao p {
+    margin: 10px 0 0;
+    white-space: pre-wrap;
+    color: var(--text-2);
+    max-width: 90ch;
+}
+
 .vaga-meta-linha {
     display: flex;
     align-items: center;

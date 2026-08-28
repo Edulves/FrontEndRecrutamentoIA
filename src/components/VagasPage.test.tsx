@@ -45,8 +45,18 @@ function candidato(parcial: Partial<Candidato> & Pick<Candidato, 'id' | 'nome'>)
 
 // Ana tem currículo armazenado; Bruno não (importado antes do armazenamento)
 const CANDIDATOS: Candidato[] = [
-    candidato({ id: 'ana', nome: 'Ana Lima', nomeArquivo: 'ana.pdf', curriculoArquivo: 'ana.pdf' }),
-    candidato({ id: 'bruno', nome: 'Bruno Souza' }),
+    candidato({
+        id: 'ana',
+        nome: 'Ana Lima',
+        nomeArquivo: 'ana.pdf',
+        curriculoArquivo: 'ana.pdf',
+        historico: [{ dataUtc: '2026-08-28T12:00:00Z', vaga: 'Analista Fiscal', score: 88 }],
+    }),
+    candidato({
+        id: 'bruno',
+        nome: 'Bruno Souza',
+        historico: [{ dataUtc: '2026-08-28T12:00:00Z', vaga: 'Analista Fiscal', score: 51 }],
+    }),
 ]
 
 describe('VagasPage', () => {
@@ -66,7 +76,7 @@ describe('VagasPage', () => {
             if (url === '/api/vagas' && init?.method === 'POST')
                 return { ok: true, status: 200, json: async () => RESPOSTA }
             if (url === '/api/vagas')
-                return { ok: true, status: 200, json: async () => [] }
+                return { ok: true, status: 200, json: async () => [VAGA] }
             if (url === '/api/candidatos')
                 return { ok: true, status: 200, json: async () => CANDIDATOS }
             if (/\/api\/candidatos\/\w+\/curriculo$/.test(url))
@@ -136,6 +146,26 @@ describe('VagasPage', () => {
         expect(
             fetchMock.mock.calls.filter((c) => (c[1] as RequestInit)?.method === 'POST')
         ).toHaveLength(0)
+    })
+
+    it('abre uma vaga cadastrada pela lista e mostra o ranking com currículo', async () => {
+        const user = userEvent.setup()
+        render(<VagasPage onSessaoExpirada={() => {}} />)
+
+        await user.click(await screen.findByRole('button', { name: 'Analista Fiscal' }))
+
+        expect(await screen.findByText(/Candidato ideal para esta vaga/i)).toBeInTheDocument()
+        expect(screen.getByRole('heading', { name: 'Analista Fiscal' })).toBeInTheDocument()
+        // Ideal = Ana (88%), com currículo armazenado
+        expect(screen.getByText('88%')).toBeInTheDocument()
+        await user.click(screen.getByRole('button', { name: 'Ver currículo' }))
+        expect(fetchMock).toHaveBeenCalledWith('/api/candidatos/ana/curriculo', expect.anything())
+        // Bruno (51%) aparece na tabela dos demais, sem botão de currículo
+        expect(screen.getByText('Bruno Souza')).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /Ver currículo de Bruno/i })).not.toBeInTheDocument()
+        // Voltar retorna ao cadastro
+        await user.click(screen.getByRole('button', { name: /Voltar para Vagas/i }))
+        expect(screen.getByRole('button', { name: /Cadastrar vaga/i })).toBeInTheDocument()
     })
 
     it('mostra o erro do backend quando o título já existe (409)', async () => {
