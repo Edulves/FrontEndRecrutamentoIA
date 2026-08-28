@@ -51,7 +51,9 @@ describe('CandidatosPage — currículo importado e foto de perfil', () => {
         globalThis.URL.revokeObjectURL = vi.fn()
         abaMock = { location: { href: '' }, close: vi.fn() }
         window.open = vi.fn(() => abaMock as unknown as Window)
-        fetchMock = vi.fn(async (url: string) => {
+        fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+            if (init?.method === 'DELETE' && /\/api\/candidatos\/\w+$/.test(url))
+                return { ok: true, status: 200, json: async () => ({ mensagem: 'Candidato excluído.' }) }
             if (url === '/api/candidatos')
                 return { ok: true, status: 200, json: async () => CANDIDATOS }
             if (/\/api\/candidatos\/\w+\/(foto|curriculo)$/.test(url))
@@ -105,6 +107,38 @@ describe('CandidatosPage — currículo importado e foto de perfil', () => {
 
         expect(screen.getByText(/Currículo não disponível/i)).toBeInTheDocument()
         expect(screen.getByRole('button', { name: /Adicionar foto/i })).toBeInTheDocument()
+    })
+
+    it('exclui candidato só depois da confirmação em duas etapas', async () => {
+        const user = userEvent.setup()
+        render(<CandidatosPage onSessaoExpirada={() => {}} />)
+
+        await user.click(await screen.findByRole('button', { name: 'Bruno Souza' }))
+        await user.click(screen.getByRole('button', { name: 'Excluir' }))
+
+        // O primeiro clique só abre a confirmação — nada foi enviado ainda
+        expect(
+            fetchMock.mock.calls.filter((c) => (c[1] as RequestInit)?.method === 'DELETE')
+        ).toHaveLength(0)
+        expect(screen.getByText(/Excluir este candidato/i)).toBeInTheDocument()
+
+        await user.click(screen.getByRole('button', { name: /Confirmar exclusão/i }))
+        const del = fetchMock.mock.calls.find((c) => (c[1] as RequestInit)?.method === 'DELETE')
+        expect(del?.[0]).toBe('/api/candidatos/bruno')
+    })
+
+    it('cancelar a exclusão não envia nada', async () => {
+        const user = userEvent.setup()
+        render(<CandidatosPage onSessaoExpirada={() => {}} />)
+
+        await user.click(await screen.findByRole('button', { name: 'Bruno Souza' }))
+        await user.click(screen.getByRole('button', { name: 'Excluir' }))
+        await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+        expect(screen.getByRole('button', { name: 'Excluir' })).toBeInTheDocument()
+        expect(
+            fetchMock.mock.calls.filter((c) => (c[1] as RequestInit)?.method === 'DELETE')
+        ).toHaveLength(0)
     })
 
     it('envia a foto escolhida para o backend', async () => {

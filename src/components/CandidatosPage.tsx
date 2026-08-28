@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { AlertTriangle, Camera, ChevronDown, ChevronRight, FileText, Info, Users } from 'lucide-react'
+import { AlertTriangle, Camera, ChevronDown, ChevronRight, FileText, Info, Trash2, Users } from 'lucide-react'
 import type { Candidato } from '../types'
 import { getToken } from '../auth'
 import { abrirCurriculo } from '../curriculo'
@@ -58,10 +58,13 @@ interface DetalheProps {
     c: Candidato
     onVerCurriculo: (c: Candidato) => void
     onEnviarFoto: (c: Candidato, arquivo: File) => void
+    onExcluir: (c: Candidato) => void
 }
 
-function Detalhe({ c, onVerCurriculo, onEnviarFoto }: DetalheProps) {
+function Detalhe({ c, onVerCurriculo, onEnviarFoto, onExcluir }: DetalheProps) {
     const inputFoto = useRef<HTMLInputElement>(null)
+    // Exclusão em duas etapas: o primeiro clique só pede a confirmação.
+    const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
 
     return (
         <tr className="detalhe">
@@ -101,6 +104,31 @@ function Detalhe({ c, onVerCurriculo, onEnviarFoto }: DetalheProps) {
                         <Camera size={15} strokeWidth={1.75} aria-hidden="true" />
                         {c.fotoArquivo ? 'Trocar foto' : 'Adicionar foto'}
                     </button>
+
+                    {confirmandoExclusao ? (
+                        <span className="excluir-confirmacao">
+                            <span>Excluir este candidato e todo o histórico dele?</span>
+                            <button type="button" className="btn-danger" onClick={() => onExcluir(c)}>
+                                Confirmar exclusão
+                            </button>
+                            <button
+                                type="button"
+                                className="btn-ghost"
+                                onClick={() => setConfirmandoExclusao(false)}
+                            >
+                                Cancelar
+                            </button>
+                        </span>
+                    ) : (
+                        <button
+                            type="button"
+                            className="btn-secondary btn-excluir"
+                            onClick={() => setConfirmandoExclusao(true)}
+                        >
+                            <Trash2 size={15} strokeWidth={1.75} aria-hidden="true" />
+                            Excluir
+                        </button>
+                    )}
                 </div>
 
                 {c.resumo && <p className="resumo">{c.resumo}</p>}
@@ -248,6 +276,39 @@ export default function CandidatosPage({ onSessaoExpirada }: Props) {
         }
     }
 
+    async function excluirCandidato(c: Candidato) {
+        const token = getToken()
+        if (!token) {
+            onSessaoExpirada()
+            return
+        }
+        setErro(null)
+        try {
+            const resp = await fetch(`/api/candidatos/${c.id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            })
+            if (resp.status === 401) {
+                onSessaoExpirada()
+                return
+            }
+            if (!resp.ok) {
+                let mensagem = `HTTP ${resp.status}`
+                try {
+                    const data = await resp.json()
+                    if (data?.erro) mensagem = data.erro
+                } catch {
+                    // corpo não-JSON — fica a mensagem com o status
+                }
+                throw new Error(mensagem)
+            }
+            setAberto(null)
+            carregar()
+        } catch (err: any) {
+            setErro(err.message ?? 'Erro desconhecido')
+        }
+    }
+
     return (
         <>
             <div className="breadcrumb">
@@ -349,6 +410,7 @@ export default function CandidatosPage({ onSessaoExpirada }: Props) {
                                                         c={c}
                                                         onVerCurriculo={verCurriculo}
                                                         onEnviarFoto={enviarFoto}
+                                                        onExcluir={excluirCandidato}
                                                     />
                                                 )}
                                             </Fragment>

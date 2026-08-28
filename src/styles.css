@@ -1266,3 +1266,39 @@ button.nav-item[aria-current="page"] {
 .input-oculto {
     display: none;
 }
+
+/* Exclusão de candidato: botão à direita + confirmação em duas etapas */
+.btn-excluir {
+    margin-left: auto;
+    color: var(--danger-fg);
+    border-color: var(--danger-bd);
+}
+
+.btn-excluir:hover:not(:disabled) {
+    background: var(--danger-bg);
+    border-color: var(--danger-bd);
+}
+
+.excluir-confirmacao {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--danger-fg);
+}
+
+.btn-danger {
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--danger-fg);
+    border: none;
+    border-radius: var(--radius-control);
+    padding: 7px 12px;
+    cursor: pointer;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #9a1c13;
+}
