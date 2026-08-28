@@ -25,6 +25,8 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
     const [enviando, setEnviando] = useState(false)
     // Vaga já cadastrada aberta a partir da lista (ranking vem do histórico).
     const [vagaAberta, setVagaAberta] = useState<Vaga | null>(null)
+    // Tela padrão é a lista de vagas; "Criar vaga" abre o formulário.
+    const [criando, setCriando] = useState(false)
     // Erro do formulário (validação/submit) separado do erro de carregamento das listas.
     const [erro, setErro] = useState<string | null>(null)
     const [erroCarga, setErroCarga] = useState<string | null>(null)
@@ -118,6 +120,7 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
             }
             const data: CadastroVagaResponse = await resp.json()
             setResultado(data)
+            setCriando(false)
             setTitulo('')
             setDescricao('')
             carregar() // a vaga nova e o histórico dos candidatos mudaram
@@ -171,7 +174,7 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
                         className="btn-secondary"
                         onClick={() => setResultado(null)}
                     >
-                        Cadastrar outra vaga
+                        Voltar para Vagas
                     </button>
                 </div>
 
@@ -511,18 +514,162 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
         )
     }
 
-    // ── Cadastro + lista de vagas ──
+    // ── Lista de todas as vagas (tela padrão) ──
+    if (!criando) {
+        return (
+            <>
+                <div className="breadcrumb">
+                    <span>Vagas</span>
+                    <span>/</span>
+                    <strong>Todas as vagas</strong>
+                </div>
+
+                <div className="result-head">
+                    <div>
+                        <h1>Vagas</h1>
+                        <p>
+                            Vagas cadastradas e o candidato ideal de cada uma. Clique numa vaga
+                            para ver o ranking completo.
+                        </p>
+                    </div>
+                    <button type="button" className="btn-primary" onClick={() => setCriando(true)}>
+                        Criar vaga
+                    </button>
+                </div>
+
+                {erroCarga && (
+                    <div className="alert alert--erro" role="alert">
+                        <AlertTriangle size={15} strokeWidth={1.75} aria-hidden="true" />
+                        <span>{erroCarga}</span>
+                    </div>
+                )}
+                {erro && (
+                    <div className="alert alert--erro" role="alert">
+                        <AlertTriangle size={15} strokeWidth={1.75} aria-hidden="true" />
+                        <span>{erro}</span>
+                    </div>
+                )}
+
+                {vagas === null && !erroCarga && <p className="page-sub">Carregando vagas…</p>}
+
+                {vagas !== null && vagas.length === 0 && (
+                    <div className="card table-card vazio-card">
+                        <Briefcase size={20} strokeWidth={1.75} color="#98a2b3" aria-hidden="true" />
+                        <p>Nenhuma vaga cadastrada ainda.</p>
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setCriando(true)}
+                        >
+                            Criar vaga
+                        </button>
+                    </div>
+                )}
+
+                {vagas !== null && vagas.length > 0 && (
+                    <>
+                        <div className="card table-card">
+                            <div className="tabela-scroll">
+                                <table className="tabela">
+                                    <thead>
+                                        <tr>
+                                            <th>Vaga</th>
+                                            <th>Cadastrada em</th>
+                                            <th>Candidatos</th>
+                                            <th>Candidato ideal</th>
+                                            <th>Currículo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {vagas.map((v) => {
+                                            const linhas = melhoresPosicionados(candidatos ?? [], v.titulo)
+                                            const ideal = linhas[0]
+                                            return (
+                                                <tr key={v.id}>
+                                                    <td>
+                                                        <button
+                                                            type="button"
+                                                            className="vaga-abrir"
+                                                            title={v.titulo}
+                                                            onClick={() => setVagaAberta(v)}
+                                                        >
+                                                            {v.titulo}
+                                                        </button>
+                                                    </td>
+                                                    <td className="col-muted">{dataCurta(v.criadaEmUtc)}</td>
+                                                    <td className="col-muted">
+                                                        {candidatos === null ? '…' : linhas.length}
+                                                    </td>
+                                                    <td>
+                                                        {candidatos === null ? (
+                                                            <span className="col-muted">Carregando…</span>
+                                                        ) : ideal ? (
+                                                            <span className="aderencia">
+                                                                <span>{ideal.nome}</span>
+                                                                <span className="pct">{ideal.score}%</span>
+                                                            </span>
+                                                        ) : (
+                                                            <span className="col-muted">Sem candidatos analisados</span>
+                                                        )}
+                                                    </td>
+                                                    <td>
+                                                        {ideal && candidatoComCurriculo(ideal.id) ? (
+                                                            <button
+                                                                type="button"
+                                                                className="btn-icon"
+                                                                aria-label={`Ver currículo de ${ideal.nome}`}
+                                                                title="Ver currículo"
+                                                                onClick={() => verCurriculo(ideal.id)}
+                                                            >
+                                                                <FileText size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                            </button>
+                                                        ) : (
+                                                            <span className="col-muted">—</span>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <p className="result-count">
+                            {vagas.length} vaga{vagas.length === 1 ? '' : 's'} cadastrada
+                            {vagas.length === 1 ? '' : 's'}
+                        </p>
+                    </>
+                )}
+
+                <div className="result-nota">
+                    <Info size={15} strokeWidth={1.75} aria-hidden="true" />
+                    <p>
+                        Ao cadastrar uma vaga, todos os candidatos do cadastro são analisados
+                        contra ela pela IA e o ranking também aparece no Dashboard.
+                    </p>
+                </div>
+            </>
+        )
+    }
+
+    // ── Nova vaga (formulário) ──
     return (
         <>
             <div className="breadcrumb">
                 <span>Vagas</span>
                 <span>/</span>
-                <strong>Cadastro</strong>
+                <strong>Nova vaga</strong>
             </div>
-            <h1>Vagas</h1>
-            <p className="page-sub">
-                Cadastre uma vaga e veja na hora qual candidato do cadastro é o ideal para ela.
-            </p>
+            <div className="result-head">
+                <div>
+                    <h1>Nova vaga</h1>
+                    <p>Cadastre a vaga e veja na hora qual candidato do cadastro é o ideal para ela.</p>
+                </div>
+                <button type="button" className="btn-secondary" onClick={() => setCriando(false)}>
+                    Voltar para Vagas
+                </button>
+            </div>
 
             {erroCarga && (
                 <div className="alert alert--erro" role="alert">
@@ -585,54 +732,6 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
                 </form>
 
                 <aside className="aside-col">
-                    <div className="card steps-card">
-                        <span className="section-label">Vagas cadastradas</span>
-                        {vagas === null && <p className="page-sub">Carregando…</p>}
-                        {vagas !== null && vagas.length === 0 && (
-                            <p className="vaga-vazio">Nenhuma vaga cadastrada ainda.</p>
-                        )}
-                        {vagas !== null &&
-                            vagas.map((v) => {
-                                const ideal = melhoresPosicionados(candidatos ?? [], v.titulo)[0]
-                                return (
-                                    <div key={v.id} className="vaga-item">
-                                        <button
-                                            type="button"
-                                            className="vaga-abrir"
-                                            title={v.titulo}
-                                            onClick={() => setVagaAberta(v)}
-                                        >
-                                            {v.titulo}
-                                        </button>
-                                        <span className="vaga-meta-linha">
-                                            <span
-                                                className="vaga-meta"
-                                                title={ideal ? `Ideal: ${ideal.nome} (${ideal.score}%)` : undefined}
-                                            >
-                                                {dataCurta(v.criadaEmUtc)}
-                                                {candidatos === null
-                                                    ? ' · Carregando…'
-                                                    : ideal
-                                                      ? ` · Ideal: ${ideal.nome} (${ideal.score}%)`
-                                                      : ' · Sem candidatos analisados'}
-                                            </span>
-                                            {ideal && candidatoComCurriculo(ideal.id) && (
-                                                <button
-                                                    type="button"
-                                                    className="btn-icon"
-                                                    aria-label={`Ver currículo de ${ideal.nome}`}
-                                                    title={`Ver currículo de ${ideal.nome}`}
-                                                    onClick={() => verCurriculo(ideal.id)}
-                                                >
-                                                    <FileText size={14} strokeWidth={1.75} aria-hidden="true" />
-                                                </button>
-                                            )}
-                                        </span>
-                                    </div>
-                                )
-                            })}
-                    </div>
-
                     <div className="nota">
                         <Info size={15} strokeWidth={1.75} color="#98a2b3" aria-hidden="true" />
                         <p>

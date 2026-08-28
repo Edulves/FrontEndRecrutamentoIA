@@ -95,6 +95,8 @@ describe('VagasPage', () => {
         const user = userEvent.setup()
         render(<VagasPage onSessaoExpirada={() => {}} />)
 
+        // A tela padrão é a lista; "Criar vaga" abre o formulário
+        await user.click(await screen.findByRole('button', { name: 'Criar vaga' }))
         await user.type(screen.getByLabelText(/Título da vaga/i), VAGA.titulo)
         await user.type(screen.getByLabelText(/Descrição e requisitos/i), VAGA.descricao)
         await user.click(screen.getByRole('button', { name: /Cadastrar vaga/i }))
@@ -140,6 +142,7 @@ describe('VagasPage', () => {
         const user = userEvent.setup()
         render(<VagasPage onSessaoExpirada={() => {}} />)
 
+        await user.click(await screen.findByRole('button', { name: 'Criar vaga' }))
         await user.click(screen.getByRole('button', { name: /Cadastrar vaga/i }))
 
         expect(await screen.findByText(/Informe o título da vaga/i)).toBeInTheDocument()
@@ -163,9 +166,9 @@ describe('VagasPage', () => {
         // Bruno (51%) aparece na tabela dos demais, sem botão de currículo
         expect(screen.getByText('Bruno Souza')).toBeInTheDocument()
         expect(screen.queryByRole('button', { name: /Ver currículo de Bruno/i })).not.toBeInTheDocument()
-        // Voltar retorna ao cadastro
+        // Voltar retorna à lista de vagas
         await user.click(screen.getByRole('button', { name: /Voltar para Vagas/i }))
-        expect(screen.getByRole('button', { name: /Cadastrar vaga/i })).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: 'Criar vaga' })).toBeInTheDocument()
     })
 
     it('mostra o erro do backend quando o título já existe (409)', async () => {
