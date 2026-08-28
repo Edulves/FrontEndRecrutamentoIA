@@ -967,3 +967,225 @@ button:disabled {
     font-size: 12.5px;
     color: var(--faint);
 }
+
+/* ── Cadastro de candidatos ──────────────────────────────────────────── */
+
+/* Itens de menu clicáveis (Análises/Candidatos) com o mesmo visual dos rótulos */
+button.nav-item {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 0;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+button.nav-item[aria-current="page"] {
+    border-bottom-color: var(--primary);
+}
+
+/* Área de aptidão ("bom para") em destaque */
+.chip--area {
+    background: #eaf1f8;
+    color: #1f4e79;
+    font-weight: 600;
+}
+
+/* Estado vazio da lista de candidatos */
+.vazio-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 28px 24px;
+    color: var(--muted);
+}
+
+.vazio-card p {
+    margin: 0;
+}
+
+/* ── Dashboard ───────────────────────────────────────────────────────── */
+
+.kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.kpi {
+    padding: 18px 20px;
+    display: grid;
+    gap: 4px;
+    align-content: start;
+}
+
+.kpi-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.kpi-valor {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+}
+
+.kpi-sub {
+    font-size: 12.5px;
+    color: var(--faint);
+}
+
+.dash-filtro {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dash-filtro label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+}
+
+.dash-filtro select {
+    font-size: 13.5px;
+    color: var(--text);
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    max-width: 320px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dash-filtro select:focus {
+    outline: none;
+    border-color: var(--link);
+    box-shadow: 0 0 0 3px rgba(37, 99, 166, 0.12);
+}
+
+/* Título de vaga longo não pode alargar a coluna da tabela */
+.tabela .col-vaga {
+    max-width: 240px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Posição no ranking; top 3 em destaque */
+.pos {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pos--1 {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+}
+
+.pos--top {
+    background: var(--tint);
+    border-color: #d3e2f0;
+    color: var(--primary);
+}
+
+/* Estado vazio do dashboard reaproveita .vazio-card; o botão fica à direita */
+.vazio-card .btn-secondary {
+    margin-left: auto;
+    flex: none;
+}
+
+/* ── Vagas ───────────────────────────────────────────────────────────── */
+
+/* Destaque do candidato ideal após cadastrar uma vaga */
+.ideal-card {
+    background: var(--tint);
+    border-color: #d3e2f0;
+    padding: 20px 24px;
+    display: grid;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.ideal-rotulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--primary);
+}
+
+.ideal-linha {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.ideal-nome {
+    font-size: 19px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.ideal-resumo {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-2);
+    max-width: 78ch;
+}
+
+/* Lista de vagas cadastradas (aside) */
+.vaga-item {
+    display: grid;
+    gap: 2px;
+    padding: 10px 0;
+}
+
+.vaga-item + .vaga-item {
+    border-top: 1px solid var(--seg-bg);
+}
+
+.vaga-titulo {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vaga-meta {
+    font-size: 12.5px;
+    color: var(--faint);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vaga-vazio {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+}

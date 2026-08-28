@@ -26,6 +26,21 @@ export default function LoginScreen({ onLogin, aviso }: Props) {
         setSucesso(null)
     }
 
+    // ponytail: acesso demo de um clique, apenas no dev server (nunca no build de produção)
+    async function entrarComoDemo() {
+        setErro(null)
+        setSucesso(null)
+        setCarregando(true)
+        try {
+            const resposta = await login('demo', 'demo123')
+            onLogin(resposta)
+        } catch (err: any) {
+            setErro(err.message ?? 'Erro desconhecido')
+        } finally {
+            setCarregando(false)
+        }
+    }
+
     async function onSubmit(e: FormEvent) {
         e.preventDefault()
         setErro(null)
@@ -180,6 +195,17 @@ export default function LoginScreen({ onLogin, aviso }: Props) {
                         <button type="submit" className="btn-primary" disabled={carregando}>
                             {carregando ? 'Aguarde…' : modo === 'entrar' ? 'Entrar' : 'Criar conta'}
                         </button>
+
+                        {import.meta.env.DEV && modo === 'entrar' && (
+                            <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={entrarComoDemo}
+                                disabled={carregando}
+                            >
+                                Entrar como demo
+                            </button>
+                        )}
                     </form>
 
                     <div className="login-foot">Ambiente corporativo de recrutamento e seleção</div>

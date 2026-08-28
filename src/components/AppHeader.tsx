@@ -1,17 +1,24 @@
 import { ChevronDown } from 'lucide-react'
 
+export type Secao = 'dashboard' | 'vagas' | 'analises' | 'candidatos'
+
 interface Props {
     /** Usuário autenticado, mostrado no canto direito. */
     usuario: string | null
     onSair: () => void
+    /** Seção ativa no menu. */
+    secao: Secao
+    onNavegar: (secao: Secao) => void
 }
 
-// Itens institucionais do protótipo. Só "Análises" existe hoje — os demais são
-// rótulos do menu, por isso não são links (não prometem navegação que não há).
-const NAV = ['Dashboard', 'Vagas', 'Candidatos', 'Análises']
-const NAV_ATIVO = 'Análises'
+const NAV: { rotulo: string; secao?: Secao }[] = [
+    { rotulo: 'Dashboard', secao: 'dashboard' },
+    { rotulo: 'Vagas', secao: 'vagas' },
+    { rotulo: 'Candidatos', secao: 'candidatos' },
+    { rotulo: 'Análises', secao: 'analises' },
+]
 
-export default function AppHeader({ usuario, onSair }: Props) {
+export default function AppHeader({ usuario, onSair, secao, onNavegar }: Props) {
     const inicial = (usuario ?? '?').trim().charAt(0) || '?'
 
     return (
@@ -23,15 +30,23 @@ export default function AppHeader({ usuario, onSair }: Props) {
                 </span>
 
                 <nav className="nav" aria-label="Seções">
-                    {NAV.map((item) => (
-                        <span
-                            key={item}
-                            className="nav-item"
-                            aria-current={item === NAV_ATIVO ? 'page' : undefined}
-                        >
-                            {item}
-                        </span>
-                    ))}
+                    {NAV.map((item) =>
+                        item.secao ? (
+                            <button
+                                key={item.rotulo}
+                                type="button"
+                                className="nav-item"
+                                aria-current={item.secao === secao ? 'page' : undefined}
+                                onClick={() => onNavegar(item.secao!)}
+                            >
+                                {item.rotulo}
+                            </button>
+                        ) : (
+                            <span key={item.rotulo} className="nav-item">
+                                {item.rotulo}
+                            </span>
+                        )
+                    )}
                 </nav>
 
                 <span className="topbar-right">

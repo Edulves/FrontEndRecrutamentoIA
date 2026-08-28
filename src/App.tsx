@@ -1,7 +1,10 @@
 import { useRef, useState, type FormEvent, type ChangeEvent, type DragEvent } from "react";
 import { AlertTriangle, FileText, Info, Upload } from "lucide-react";
 import type { AnaliseResponse } from "./types";
-import AppHeader from "./components/AppHeader";
+import AppHeader, { type Secao } from "./components/AppHeader";
+import CandidatosPage from "./components/CandidatosPage";
+import DashboardPage from "./components/DashboardPage";
+import VagasPage from "./components/VagasPage";
 import ResultadoAnalise from "./components/ResultadoAnalise";
 import LoginScreen from "./components/LoginScreen";
 import LoadingModal from "./components/LoadingModal";
@@ -37,6 +40,13 @@ export default function App() {
     const [autenticado, setAutenticado] = useState(() => getToken() !== null);
     const [usuarioLogado, setUsuarioLogado] = useState<string | null>(getUsuarioLogado);
     const [avisoLogin, setAvisoLogin] = useState<string | null>(null);
+    const [secao, setSecao] = useState<Secao>("analises");
+
+    function handleSessaoExpirada() {
+        limparSessao();
+        setAutenticado(false);
+        setAvisoLogin("Sua sessão expirou. Entre novamente para continuar.");
+    }
 
     function handleLoginSucesso(resposta: LoginResponse) {
         salvarSessao(resposta);
@@ -51,6 +61,7 @@ export default function App() {
         setUsuarioLogado(null);
         setResultado(null);
         setErro(null);
+        setSecao("analises"); // próximo login recomeça no fluxo padrão
     }
 
     function onFileChange(e: ChangeEvent<HTMLInputElement>) {
@@ -152,11 +163,54 @@ export default function App() {
         return <LoginScreen onLogin={handleLoginSucesso} aviso={avisoLogin} />;
     }
 
+    const header = (
+        <AppHeader usuario={usuarioLogado} onSair={handleLogout} secao={secao} onNavegar={setSecao} />
+    );
+
+    // Dashboard — ranking dos candidatos melhores posicionados
+    if (secao === "dashboard") {
+        return (
+            <>
+                {header}
+                <main className="page">
+                    <DashboardPage
+                        onSessaoExpirada={handleSessaoExpirada}
+                        onIrParaAnalises={() => setSecao("analises")}
+                    />
+                </main>
+            </>
+        );
+    }
+
+    // Cadastro de vagas — ao cadastrar, mostra o candidato ideal do cadastro
+    if (secao === "vagas") {
+        return (
+            <>
+                {header}
+                <main className="page">
+                    <VagasPage onSessaoExpirada={handleSessaoExpirada} />
+                </main>
+            </>
+        );
+    }
+
+    // Cadastro de candidatos (perfis salvos a cada currículo analisado)
+    if (secao === "candidatos") {
+        return (
+            <>
+                {header}
+                <main className="page">
+                    <CandidatosPage onSessaoExpirada={handleSessaoExpirada} />
+                </main>
+            </>
+        );
+    }
+
     // Tela 3 — resultado da análise
     if (resultado) {
         return (
             <>
-                <AppHeader usuario={usuarioLogado} onSair={handleLogout} />
+                {header}
                 <main className="page">
                     <ResultadoAnalise data={resultado} onNovaAnalise={() => setResultado(null)} />
                 </main>
@@ -172,7 +226,7 @@ export default function App() {
 
     return (
         <>
-            <AppHeader usuario={usuarioLogado} onSair={handleLogout} />
+            {header}
 
             <main className="page">
                 <div className="breadcrumb">

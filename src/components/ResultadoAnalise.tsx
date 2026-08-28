@@ -9,7 +9,7 @@ interface Props {
 }
 
 /** A partir deste percentual de aderência o candidato entra como "Recomendado". */
-const CORTE_RECOMENDADO = 70
+export const CORTE_RECOMENDADO = 70
 
 type Filtro = 'todos' | 'recomendados' | 'em-analise'
 
