@@ -11,5 +11,10 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  preview: {
+    port: 4173,
+    // SEM proxy em produção: a URL completa virá de VITE_API_URL
+    // Assim você verá a URL real no DevTools (F12)
   }
 })
