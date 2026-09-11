@@ -3,6 +3,7 @@ import { AlertTriangle, Info, LayoutDashboard } from 'lucide-react'
 import type { Candidato } from '../types'
 import { getToken } from '../auth'
 import { CORTE_RECOMENDADO } from './ResultadoAnalise'
+import { getApiUrl } from '../config'
 
 interface Props {
     /** Sessão expirada: derruba para a tela de login. */
@@ -65,7 +66,7 @@ export default function DashboardPage({ onSessaoExpirada, onIrParaAnalises }: Pr
             return
         }
         let ativo = true
-        fetch('/api/candidatos', { headers: { Authorization: `Bearer ${token}` } })
+        fetch(getApiUrl('/candidatos'), { headers: { Authorization: `Bearer ${token}` } })
             .then(async (resp) => {
                 if (resp.status === 401) {
                     onSessaoExpirada()

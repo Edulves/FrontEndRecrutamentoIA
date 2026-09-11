@@ -1,4 +1,5 @@
 import { getToken } from './auth'
+import { getApiUrl } from './config'
 
 /**
  * Abre o currículo armazenado do candidato: PDF/TXT numa aba nova, DOCX baixa
@@ -15,7 +16,7 @@ export async function abrirCurriculo(candidatoId: string, nomeArquivo: string): 
     const docx = /\.docx$/i.test(nomeArquivo)
     const aba = docx ? null : window.open('', '_blank')
     try {
-        const resp = await fetch(`/api/candidatos/${candidatoId}/curriculo`, {
+        const resp = await fetch(getApiUrl(`/candidatos/${candidatoId}/curriculo`), {
             headers: { Authorization: `Bearer ${token}` },
         })
         if (resp.status === 401) {

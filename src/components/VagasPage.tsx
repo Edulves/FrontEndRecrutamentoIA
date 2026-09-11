@@ -6,6 +6,7 @@ import { abrirCurriculo } from '../curriculo'
 import { CORTE_RECOMENDADO } from './ResultadoAnalise'
 import { melhoresPosicionados } from './DashboardPage'
 import LoadingModal from './LoadingModal'
+import { getApiUrl } from '../config'
 
 interface Props {
     /** Sessão expirada: derruba para a tela de login. */
@@ -51,7 +52,7 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
             if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${await resp.text()}`)
             return resp.json()
         }
-        fetch('/api/vagas', { headers })
+        fetch(getApiUrl('/vagas'), { headers })
             .then(tratar)
             .then((data: Vaga[] | null) => {
                 if (data && geracao === geracaoRef.current) setVagas(data)
@@ -59,7 +60,7 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
             .catch((err) => {
                 if (geracao === geracaoRef.current) setErroCarga(err.message ?? 'Erro desconhecido')
             })
-        fetch('/api/candidatos', { headers })
+        fetch(getApiUrl('/candidatos'), { headers })
             .then(tratar)
             .then((data: Candidato[] | null) => {
                 if (data && geracao === geracaoRef.current) setCandidatos(data)
@@ -96,7 +97,7 @@ export default function VagasPage({ onSessaoExpirada }: Props) {
 
         setEnviando(true)
         try {
-            const resp = await fetch('/api/vagas', {
+            const resp = await fetch(getApiUrl('/vagas'), {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,

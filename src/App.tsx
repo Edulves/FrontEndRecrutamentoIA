@@ -9,6 +9,7 @@ import ResultadoAnalise from "./components/ResultadoAnalise";
 import LoginScreen from "./components/LoginScreen";
 import LoadingModal from "./components/LoadingModal";
 import { getToken, getUsuarioLogado, limparSessao, salvarSessao, type LoginResponse } from "./auth";
+import { getApiUrl } from "./config";
 
 const EXEMPLO_VAGA = `Analista de Planejamento Sênior
 Requisitos obrigatórios:
@@ -135,7 +136,7 @@ export default function App() {
 
         setCarregando(true);
         try {
-            const resp = await fetch("/api/analisar", {
+            const resp = await fetch(getApiUrl("/analisar"), {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
                 body: fd,

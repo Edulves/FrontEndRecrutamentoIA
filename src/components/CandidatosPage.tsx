@@ -3,6 +3,7 @@ import { AlertTriangle, Camera, ChevronDown, ChevronRight, FileText, Info, Trash
 import type { Candidato } from '../types'
 import { getToken } from '../auth'
 import { abrirCurriculo } from '../curriculo'
+import { getApiUrl } from '../config'
 
 interface Props {
     /** Sessão expirada: derruba para a tela de login. */
@@ -27,7 +28,7 @@ function AvatarCandidato({ c, versao }: { c: Candidato; versao: number }) {
         if (!token) return
         let ativo = true
         let objectUrl: string | null = null
-        fetch(`/api/candidatos/${c.id}/foto`, { headers: { Authorization: `Bearer ${token}` } })
+        fetch(getApiUrl(`/candidatos/${c.id}/foto`), { headers: { Authorization: `Bearer ${token}` } })
             .then((resp) => (resp.ok ? resp.blob() : null))
             .then((blob) => {
                 if (blob && ativo) {
@@ -210,7 +211,7 @@ export default function CandidatosPage({ onSessaoExpirada }: Props) {
             return
         }
         const geracao = ++geracaoRef.current
-        fetch('/api/candidatos', { headers: { Authorization: `Bearer ${token}` } })
+        fetch(getApiUrl('/candidatos'), { headers: { Authorization: `Bearer ${token}` } })
             .then(async (resp) => {
                 if (resp.status === 401) {
                     onSessaoExpirada()
@@ -250,7 +251,7 @@ export default function CandidatosPage({ onSessaoExpirada }: Props) {
         try {
             const fd = new FormData()
             fd.append('foto', arquivo)
-            const resp = await fetch(`/api/candidatos/${c.id}/foto`, {
+            const resp = await fetch(getApiUrl(`/candidatos/${c.id}/foto`), {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: fd,
@@ -284,7 +285,7 @@ export default function CandidatosPage({ onSessaoExpirada }: Props) {
         }
         setErro(null)
         try {
-            const resp = await fetch(`/api/candidatos/${c.id}`, {
+            const resp = await fetch(getApiUrl(`/candidatos/${c.id}`), {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` },
             })

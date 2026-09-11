@@ -2,6 +2,8 @@
 // Login/registro no backend e persistência do JWT no localStorage.
 // O token é reenviado como "Authorization: Bearer <token>" nas chamadas protegidas.
 
+import { getApiUrl } from './config'
+
 export interface LoginResponse {
     mensagem: string
     usuario: string
@@ -72,13 +74,13 @@ async function postJson(url: string, body: unknown): Promise<Response> {
 }
 
 export async function login(username: string, password: string): Promise<LoginResponse> {
-    const resp = await postJson('/api/auth/login', { username, password })
+    const resp = await postJson(getApiUrl('/auth/login'), { username, password })
     if (!resp.ok) throw await lerErro(resp)
     return (await resp.json()) as LoginResponse
 }
 
 export async function registrar(username: string, password: string): Promise<RegistroResponse> {
-    const resp = await postJson('/api/auth/registrar', { username, password })
+    const resp = await postJson(getApiUrl('/auth/registrar'), { username, password })
     if (!resp.ok) throw await lerErro(resp)
     return (await resp.json()) as RegistroResponse
 }
