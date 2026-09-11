@@ -9,6 +9,8 @@ tsconfig.tsbuildinfo
 .env
 .env.*
 !.env.example
+!.env.preview          # Documentação: URL para preview (sem segredos)
+!.env.production       # Documentação: URL para build (sem segredos)
 *.local
 
 # IDE / SO
